@@ -5,7 +5,7 @@ from insuree.schema import InsureeGQLType
 from location.schema import HealthFacilityGQLType
 from medical.schema import DiagnosisGQLType
 from claim_batch.schema import BatchRunGQLType
-from .models import Claim, ClaimAdmin, Feedback, ClaimItem, ClaimService, ClaimAttachment,SSFScheme
+from .models import Claim, ClaimAdmin, Feedback, ClaimItem, ClaimService, ClaimAttachment,SosysSubProduct
 from core.models import Officer
 
 
@@ -39,11 +39,11 @@ class SsfSchemeServiceGQLType(DjangoObjectType):
     """
 
     class Meta:
-        model = SSFScheme
+        model = SosysSubProduct
         exclude_fields = ('row_id',)
         interfaces = (graphene.relay.Node,)
         filter_fields = {
-            "SCH_NAME": ["exact"]
+            "sch_name": ["exact"]
         }
         connection_class = ExtendedConnection
 
