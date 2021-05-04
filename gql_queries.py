@@ -5,7 +5,7 @@ from insuree.schema import InsureeGQLType
 from location.schema import HealthFacilityGQLType
 from medical.schema import DiagnosisGQLType
 from claim_batch.schema import BatchRunGQLType
-from .models import Claim, ClaimAdmin, Feedback, ClaimItem, ClaimService, ClaimAttachment,SosysSubProduct
+from .models import Claim, ClaimAdmin, Feedback, ClaimItem, ClaimService, ClaimAttachment
 from core.models import Officer
 
 
@@ -32,25 +32,6 @@ class ClaimAdminGQLType(DjangoObjectType):
         queryset = queryset.filter(*filter_validity())
         return queryset
 
-
-class SsfSchemeServiceGQLType(DjangoObjectType):
-    """
-    Details about a SSF Scheme
-    """
-
-    class Meta:
-        model = SosysSubProduct
-        exclude_fields = ('row_id',)
-        interfaces = (graphene.relay.Node,)
-        filter_fields = {
-            "sch_name": ["exact"]
-        }
-        connection_class = ExtendedConnection
-
-    @classmethod
-    def get_queryset(cls, queryset, info):
-        queryset = queryset.filter()
-        return queryset
 
 class ClaimOfficerGQLType(DjangoObjectType):
     """
@@ -90,7 +71,6 @@ class ClaimGQLType(DjangoObjectType):
         interfaces = (graphene.relay.Node,)
         filter_fields = {
             "uuid": ["exact"],
-            "scheme_type": ["exact"],
             "code": ["exact", "istartswith", "icontains", "iexact"],
             "status": ["exact"],
             "date_claimed": ["exact", "lt", "lte", "gt", "gte"],

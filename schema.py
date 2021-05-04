@@ -5,7 +5,7 @@ from core import filter_validity
 import graphene
 import graphene_django_optimizer as gql_optimizer
 from core.schema import TinyInt, SmallInt, OpenIMISMutation, OrderedDjangoFilterConnectionField
-from .models import ClaimMutation,SosysSubProduct
+from .models import ClaimMutation
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.utils.translation import gettext as _
 from graphene_django.filter import DjangoFilterConnectionField
@@ -13,9 +13,7 @@ from graphene_django.filter import DjangoFilterConnectionField
 from .gql_queries import *
 from .gql_mutations import *
 
-class ssfSchemaType(DjangoObjectType):
-    class Meta:
-        model = SosysSubProduct
+
 
 class Query(graphene.ObjectType):
     claims = OrderedDjangoFilterConnectionField(
@@ -26,7 +24,6 @@ class Query(graphene.ObjectType):
     )
     claim_attachments = DjangoFilterConnectionField(ClaimAttachmentGQLType)
     claim_admins = DjangoFilterConnectionField(ClaimAdminGQLType)
-    ssf = DjangoFilterConnectionField(SsfSchemeServiceGQLType)
     claim_admins_str = DjangoFilterConnectionField(
         ClaimAdminGQLType,
         str=graphene.String(),

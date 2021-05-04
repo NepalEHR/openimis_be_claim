@@ -51,7 +51,7 @@ class ClaimSubmit(object):
                  end_date=None,
                  icd_code_1=None, icd_code_2=None, icd_code_3=None, icd_code_4=None,
                  visit_type=None, guarantee_no=None,
-                 comment=None,scheme_type=None
+                 comment=None
                  ):
         self.date = date
         self.code = code
@@ -71,7 +71,6 @@ class ClaimSubmit(object):
         self.comment = comment
         self.items = item_submits
         self.services = service_submits
-        self.scheme_type=scheme_type
 
     def _details_to_xmlelt(self, xmlelt):
         ET.SubElement(xmlelt, 'ClaimDate').text = self.date.to_ad_date().strftime(
@@ -87,8 +86,6 @@ class ClaimSubmit(object):
             xmlelt, 'StartDate').text = self.start_date.to_ad_date().strftime("%d/%m/%Y")
         if self.comment:
             ET.SubElement(xmlelt, 'Comment').text = "%s" % self.comment
-        if self.scheme_type:
-            ET.SubElement(xmlelt, 'SchemeType').text =  "%s" % self.scheme_type
         ET.SubElement(xmlelt, 'ICDCode').text = "%s" % self.icd_code
         if self.comment:
             ET.SubElement(xmlelt, 'Comment').text = "%s" % self.comment
@@ -172,6 +169,7 @@ class ClaimSubmitService(object):
                 EXEC @ret = [dbo].[uspUpdateClaimFromPhone] @XML = %s;
                 SELECT @ret;
             """
+            print(claim_submit.to_xml())
             cur.execute(sql, (claim_submit.to_xml(),))
             for i in range(int(ClaimConfig.claim_uspUpdateClaimFromPhone_intermediate_sets)):
                 cur.nextset()

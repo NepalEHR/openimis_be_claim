@@ -192,10 +192,6 @@ class Claim(core_models.VersionedModel):
         db_column='AuditUserIDSubmit', blank=True, null=True)
     audit_user_id_process = models.IntegerField(
         db_column='AuditUserIDProcess', blank=True, null=True)
-    scheme_type = models.IntegerField(
-        db_column='SchemeType', blank=True, null=True)
-    subProduct_id = models.IntegerField(
-        db_column='subProduct_id', blank=True, null=True)
     # row_id = models.BinaryField(db_column='RowID', blank=True, null=True)
 
     class Meta:
@@ -313,33 +309,8 @@ class ClaimDetail:
     class Meta:
         abstract = True
 
-# class SSFScheme(models.Model):
-#     id = models.AutoField(db_column='SCH_ID', primary_key=True)
-#     SCH_NAME= models.CharField(db_column='SCH_NAME',max_length = 100)
-#     SCH_NAME_ENG= models.CharField(db_column='SCH_NAME_ENG',max_length = 100)
-#     VISIT_TYPE= models.CharField(db_column='VISIT_TYPE',max_length = 150)
-#     ENTRY_BY=models.CharField(db_column='ENTRY_BY',max_length = 10)
-#     ENTRY_DATE=models.BooleanField(db_column='ENTRY_DATE',default =False)
-#     R_STATUS=models.DateTimeField(db_column='R_STATUS', blank=True, null=True)
-#     SCHAPP_ID = models.IntegerField(db_column='SCHAPP_ID', blank=True, null=True)
-#     class Meta:
-#         db_table = "tblSSFSchemes"
-#     @classmethod
-#     def get_queryset(cls, queryset, user):
-#         queryset = SSFScheme.filter_queryset(queryset)
-#         return SSFScheme
-class SosysSubProduct(models.Model):
-    sch_name= models.CharField(db_column='sch_name',max_length = 100)
-    sch_name_eng= models.CharField(db_column='sch_name_eng',max_length = 100)
-    status=models.BooleanField(db_column='status', blank=True, null=True)
-    product_id= models.IntegerField(db_column='product_id')
-    sosys_type=models.CharField(db_column='type',max_length = 1)
-    class Meta:
-        db_table = "sosys_subproduct"
-    @classmethod
-    def get_queryset(cls, queryset, user):
-        queryset = SosysSubProduct.filter_queryset(queryset)
-        return SosysSubProduct
+
+
 class ClaimItem(core_models.VersionedModel, ClaimDetail):
     model_prefix = "item"
     id = models.AutoField(db_column='ClaimItemID', primary_key=True)

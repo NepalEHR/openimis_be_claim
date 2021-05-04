@@ -205,7 +205,6 @@ class ClaimInputType(OpenIMISMutation.Input):
     date_processed = graphene.Date(required=False)
     health_facility_id = graphene.Int(required=True)
     batch_run_id = graphene.Int(required=False)
-    scheme_type = graphene.Int(required=False)
     category = graphene.String(max_length=1, required=False)
     visit_type = graphene.String(max_length=1, required=False)
     admin_id = graphene.Int(required=False)
@@ -392,7 +391,7 @@ class CreateClaimCodeMutation(OpenIMISMutation):
         return maybe_thenable(result, on_resolve)
     
     def callSP(cls,hosCode):
-        code_value= "I"+str(hosCode)
+        code_value= str(hosCode)
         claim_code=cls.generateCode(code_value)
         return claim_code
         # else:
@@ -403,7 +402,7 @@ class CreateClaimCodeMutation(OpenIMISMutation):
         from django.db import connection
         sql = """\
                 DECLARE @return_value int;
-                EXEC @return_value = [dbo].[uspClaimSequenceNo] @claimcodeinitials = '""" +claimCodeInitials +"""' ;      
+                EXEC @return_value = [dbo].[uspGenerateClaimCode] @currentYear = '""" +claimCodeInitials +"""' ;      
                 SELECT	'Return Value' = @return_value;
             """
         # print(sql)
@@ -413,9 +412,10 @@ class CreateClaimCodeMutation(OpenIMISMutation):
                 result_set = cur.fetchone()[0]
                 import datetime
                 currentYear = datetime.datetime.now()
-                code = claimCodeInitials +str(currentYear.year)[1:]+ str("{:07d}".format(result_set))+"01C"
+                code = claimCodeInitials + str("{:08d}".format(result_set))
             finally:
-                cur.close()
+                cur.close()    
+        connection.close()
         return code
     
 class CreateClaimMutation(OpenIMISMutation):
