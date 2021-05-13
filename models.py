@@ -6,20 +6,22 @@ from core import models as core_models
 from django import dispatch
 from django.conf import settings
 from django.db import models
+from django.utils.translation.template import blankout
 from graphql import ResolveInfo
 from insuree import models as insuree_models
 from location import models as location_models
 from location.models import UserDistrict
 from medical import models as medical_models
+from numpy.distutils.system_info import blas_info
+from numpy.lib.nanfunctions import _divide_by_count
 from policy import models as policy_models
 from product import models as product_models
-
-
+from sosys.models import Employer, Bank, BankBranch,ClaimDocumentsMaster,SubProduct
 class ClaimAdmin(core_models.VersionedModel):
     id = models.AutoField(db_column='ClaimAdminId', primary_key=True)
     uuid = models.CharField(db_column='ClaimAdminUUID', max_length=36, default=uuid.uuid4, unique=True)
 
-    code = models.CharField(db_column='ClaimAdminCode', max_length=8, blank=True, null=True)
+    code = models.CharField(db_column='ClaimAdminCode', max_length=25, blank=True, null=True)
     last_name = models.CharField(db_column='LastName', max_length=100, blank=True, null=True)
     other_names = models.CharField(db_column='OtherNames', max_length=100, blank=True, null=True)
     dob = models.DateField(db_column='DOB', blank=True, null=True)
@@ -94,7 +96,7 @@ class Feedback(core_models.VersionedModel):
 signal_claim_rejection = dispatch.Signal(providing_args=["claim"])
 
 
-class Claim(core_models.VersionedModel):
+class Claim(core_models.VersionedModel, core_models.ExtendableModel):
     id = models.AutoField(db_column='ClaimID', primary_key=True)
     uuid = models.CharField(db_column='ClaimUUID',
                             max_length=36, default=uuid.uuid4, unique=True)
@@ -102,7 +104,7 @@ class Claim(core_models.VersionedModel):
         db_column='ClaimCategory', max_length=1, blank=True, null=True)
     insuree = models.ForeignKey(
         insuree_models.Insuree, models.DO_NOTHING, db_column='InsureeID')
-    code = models.CharField(db_column='ClaimCode', max_length=8, unique=True)
+    code = models.CharField(db_column='ClaimCode', max_length=60)
     date_from = fields.DateField(db_column='DateFrom')
     date_to = fields.DateField(db_column='DateTo', blank=True, null=True)
     status = models.SmallIntegerField(db_column='ClaimStatus')
@@ -134,13 +136,13 @@ class Claim(core_models.VersionedModel):
     explanation = models.TextField(
         db_column='Explanation', blank=True, null=True)
     feedback_status = models.SmallIntegerField(
-        db_column='FeedbackStatus', blank=True, null=True)
+        db_column='FeedbackStatus', blank=True, null=True, default=1)
     review_status = models.SmallIntegerField(
-        db_column='ReviewStatus', blank=True, null=True)
+        db_column='ReviewStatus', blank=True, null=True, default=1)
     approval_status = models.SmallIntegerField(
-        db_column='ApprovalStatus', blank=True, null=True)
+        db_column='ApprovalStatus', blank=True, null=True, default=1)
     rejection_reason = models.SmallIntegerField(
-        db_column='RejectionReason', blank=True, null=True)
+        db_column='RejectionReason', blank=True, null=True, default=0)
 
     batch_run = models.ForeignKey(claim_batch_models.BatchRun,
                                   models.DO_NOTHING, db_column='RunID', blank=True, null=True)
@@ -194,18 +196,73 @@ class Claim(core_models.VersionedModel):
         db_column='AuditUserIDProcess', blank=True, null=True)
     scheme_type = models.IntegerField(
         db_column='SchemeType', blank=True, null=True)
-    subProduct_id = models.IntegerField(
-        db_column='subProduct_id', blank=True, null=True)
     # row_id = models.BinaryField(db_column='RowID', blank=True, null=True)
+    # Anusuch 2 fields for SSF
+
+    reason_of_sickness = models.CharField(db_column='ReasonOfSickness',blank=True,null=True,max_length=255)
+    condition_of_wound = models.CharField(db_column='ConditionOfWound',blank=True,null=True,max_length=1)
+    injured_body_part = models.TextField(db_column='InjuredBodyPart',blank=True,null=True)
+    is_dead = models.CharField(db_column='IsDead',blank=True,null=True,max_length=5)
+    dead_date= models.DateField(db_column='DeadDate',blank=True,null=True)
+    dead_time = models.TimeField(db_column='DeadTime',blank=True,null=True)
+   # dead_time = models.CharField(db_column='DeadTime',blank=True,null=True, max_length=10)
+    dead_reason = models.TextField(db_column='DeadReason',blank=True,null=True)
+    dead_certificate_attachment = models.TextField(db_column='DeadCertificateAttachment',null=True,blank=True)
+    cancer = models.CharField(db_column='Cancer',null=True,blank=True,max_length=255)
+    heart_attack = models.CharField(db_column='HeartAttack',null=True,blank=True,max_length=255)
+    hiv = models.CharField(db_column='HIV',null=True,blank=True,max_length=255)
+    high_bp = models.CharField(db_column='HighBp',null=True,blank=True,max_length=255)
+    diabetes = models.CharField(db_column='Diabetes',null=True,blank=True,max_length=255)
+    capability = models.CharField(db_column='Capability',null=True,blank=True,max_length=5)
+    accident_description = models.TextField(db_column='AccidentDescription',null=True,blank=True)
+
+    employer = models.ForeignKey(Employer,models.DO_NOTHING,blank=True,null=True,related_name='claim_employer')
+    discharge_type = models.CharField(db_column='DischargeType',blank=True,null=True,max_length=30)
+    follow_up_date = models.DateField(db_column= 'FollowUpDate',blank=True,null=True)
+    rest_period = models.IntegerField(db_column='RestPeriod',blank=True,null=True)#this should be in days
+
+    refer_to_health_facility = models.ForeignKey(location_models.HealthFacility, models.DO_NOTHING, related_name='refer_to_claim' ,null=True,blank=True,db_column='ReferToHealthFacility')
+    refer_to_date = fields.DateField(db_column='ReferToDate',null=True,blank=True)
+    refer_to_hf_other = models.CharField(db_column='ReferToHFOther',null=True,blank=True,max_length=255)
+    discharge_summary = models.TextField(db_column='DischargeSummary',null=True,blank=True)
+    # Refer By when visit type is Referral
+    refer_from_health_facility = models.ForeignKey(location_models.HealthFacility, models.DO_NOTHING,related_name='refer_from_claim',db_column='ReferFromHealthFacility',null=True,blank=True)
+    refer_from_date = models.DateField(db_column='ReferFromDate',null=True,blank=True)
+    refer_from_hf_other = models.CharField(db_column='ReferFromHfOther',null=True,blank=True,max_length=255)
+    is_admitted = models.CharField(db_column='IsAdmitted',null=True,blank=True,max_length=6)
+
+
+    refer_by_claim = models.ForeignKey('Claim' ,on_delete=models.DO_NOTHING,related_name='refered_claim',blank=True,null=True)
+    refer_flag = models.BooleanField(db_column='ReferFlag',default=False)
+
+    # Hospital Bank Details
+    hf_bank  = models.ForeignKey(Bank,on_delete=models.DO_NOTHING,related_name='claim_hf_bank',null=True,blank=True)
+    hf_branch = models.ForeignKey(BankBranch,on_delete=models.DO_NOTHING,related_name='claim_hf_branch',null=True,blank=True)
+    hf_account_name = models.CharField(max_length=60,null=True,blank=True)
+    hf_account_number = models.CharField(max_length=30,null=True,blank=True)
+
+    # Check Remarks, Attachment and Scheme ID
+    check_remarks = models.TextField(null=True,blank=True)
+    check_attachment = models.TextField(null=True,blank=True)
+    scheme_app_id = models.IntegerField(null=True,blank=True)
+    subProduct = models.ForeignKey(SubProduct, on_delete=models.DO_NOTHING, related_name="claim_subProduct", null=True,blank=True)
+    product = models.ForeignKey(product_models.Product, on_delete=models.DO_NOTHING,related_name='claim_product',null=True,blank=True)
+    is_disable = models.CharField(db_column='is_disable',null=True,blank=True,max_length=255)
+    is_reclaim = models.CharField(db_column='isReclaim',null=True,blank=True,max_length=6)
+    head_claim = models.ForeignKey('self',on_delete=models.DO_NOTHING,related_name='child_claim',null=True,blank=True)
+    claim_for = models.IntegerField(null=True, blank=True)
+
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tblClaim'
 
     STATUS_REJECTED = 1
     STATUS_ENTERED = 2
     STATUS_CHECKED = 4
     STATUS_PROCESSED = 8
+    STATUS_RECOMMENDED = 6
+    STATUS_FORWARDED = 9
     STATUS_VALUATED = 16
 
     FEEDBACK_IDLE = 1
@@ -266,7 +323,8 @@ class Claim(core_models.VersionedModel):
 
 
 class ClaimAttachmentsCount(models.Model):
-    claim = models.OneToOneField(Claim, primary_key=True, related_name='attachments_count', on_delete=models.DO_NOTHING)
+    claim = models.ForeignKey(Claim, models.DO_NOTHING,related_name='attachments_count')
+    # claim = models.OneToOneField(Claim, primary_key=True, related_name='attachments_count', on_delete=models.DO_NOTHING)
     value = models.IntegerField(db_column='attachments_count')
 
     class Meta:
@@ -313,6 +371,7 @@ class ClaimDetail:
     class Meta:
         abstract = True
 
+
 # class SSFScheme(models.Model):
 #     id = models.AutoField(db_column='SCH_ID', primary_key=True)
 #     SCH_NAME= models.CharField(db_column='SCH_NAME',max_length = 100)
@@ -328,6 +387,7 @@ class ClaimDetail:
 #     def get_queryset(cls, queryset, user):
 #         queryset = SSFScheme.filter_queryset(queryset)
 #         return SSFScheme
+
 class SosysSubProduct(models.Model):
     sch_name= models.CharField(db_column='sch_name',max_length = 100)
     sch_name_eng= models.CharField(db_column='sch_name_eng',max_length = 100)
@@ -413,7 +473,8 @@ class ClaimAttachment(core_models.UUIDModel, core_models.UUIDVersionedModel):
     url = models.TextField(blank=True, null=True)
     # Support of BinaryField is database-related: prefer to stick to b64-encoded
     document = models.TextField(blank=True, null=True)
-
+    masterDocument = models.ForeignKey(ClaimDocumentsMaster,on_delete=models.DO_NOTHING,blank=True,null=True)
+    documentFrom = models.CharField(max_length=1,blank=True,null=True)
     class Meta:
         managed = True
         db_table = "claim_ClaimAttachment"
